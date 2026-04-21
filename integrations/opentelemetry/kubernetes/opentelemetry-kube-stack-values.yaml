@@ -98,8 +98,8 @@ collectors:
           spike_limit_percentage: 25
         # Batch logs to improve performance and reduce network overhead
         batch:
-          send_batch_size: 100
-          timeout: 30s
+          send_batch_size: 1000
+          timeout: 5s
         # Promote filelog path fields to resource attrs so k8sattributes can associate pods
         transform/seed_pod_resource:
           log_statements:
@@ -113,15 +113,6 @@ collectors:
         k8sattributes:
           filter:
             node_from_env_var: OTEL_K8S_NODE_NAME
-          pod_association:
-            - sources:
-                - from: resource_attribute
-                  name: k8s.pod.ip
-            - sources:
-                - from: resource_attribute
-                  name: k8s.pod.uid
-            - sources:
-                - from: connection
           auth_type: serviceAccount
           passthrough: false
           extract:
@@ -155,9 +146,6 @@ collectors:
                 from: pod
           pod_association:
             - sources:
-                - from: connection
-                  name: ip
-            - sources:
                 - from: resource_attribute
                   name: k8s.pod.ip
             - sources:
@@ -166,6 +154,9 @@ collectors:
             - sources:
                 - from: resource_attribute
                   name: k8s.pod.name
+            - sources:
+                - from: connection
+                  name: ip
         # Normalize fields and copy Kubernetes metadata to log attributes (searchable in Logsblox)
         transform/add_pod_metadata:
           log_statements:
@@ -231,5 +222,5 @@ collectors:
         pipelines:
           logs:
             receivers: [filelog]
-            processors: [transform/seed_pod_resource, k8sattributes, transform/add_pod_metadata, filter/drop_empty_logs, batch]
+            processors: [memory_limiter, transform/seed_pod_resource, k8sattributes, transform/add_pod_metadata, filter/drop_empty_logs, batch]
             exporters: [otlphttp/logsblox]
