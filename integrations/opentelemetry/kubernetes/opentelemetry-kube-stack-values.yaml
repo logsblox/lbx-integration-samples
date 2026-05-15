@@ -199,6 +199,13 @@ collectors:
                 - set(attributes["service.name"], resource.attributes["service.name"]) where resource.attributes["service.name"] != nil
                 - set(attributes["service.version"], resource.attributes["service.version"]) where resource.attributes["service.version"] != nil
                 - set(attributes["service.instance.id"], resource.attributes["service.instance.id"]) where resource.attributes["service.instance.id"] != nil
+        # Keep only logs from the development namespace for Walrus indexing/publishing.
+        # If k8sattributes enrichment fails, the record is dropped rather than forwarded broadly.
+        filter/keep_development_namespace:
+          error_mode: ignore
+          logs:
+            log_record:
+              - 'resource.attributes["k8s.namespace.name"] != "development"'
         # Skip empty/whitespace-only logs
         filter/drop_empty_logs:
           logs:
@@ -222,5 +229,5 @@ collectors:
         pipelines:
           logs:
             receivers: [filelog]
-            processors: [memory_limiter, transform/seed_pod_resource, k8sattributes, transform/add_pod_metadata, filter/drop_empty_logs, batch]
+            processors: [memory_limiter, transform/seed_pod_resource, k8sattributes, transform/add_pod_metadata, filter/keep_development_namespace, filter/drop_empty_logs, batch]
             exporters: [otlphttp/logsblox]
