@@ -205,7 +205,7 @@ collectors:
           error_mode: ignore
           logs:
             log_record:
-              - 'resource.attributes["k8s.namespace.name"] != "development"'
+              - 'resource.attributes["k8s.namespace.name"] != "production"'
         # Skip empty/whitespace-only logs
         filter/drop_empty_logs:
           logs:
