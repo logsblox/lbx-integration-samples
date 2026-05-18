@@ -45,7 +45,10 @@ collectors:
             - /var/log/pods/*opentelemetry-kube-stack*/*/*.log
           include_file_path: true
           include_file_name: false
-          start_at: end
+          # Read from the beginning when a pod log file is first discovered.
+          # This makes short-lived jobs and bursty test generators observable
+          # instead of being skipped when they finish before tailing starts.
+          start_at: beginning
           operators:
             # Parse pod metadata for k8sattributes association
             - type: regex_parser
@@ -199,13 +202,6 @@ collectors:
                 - set(attributes["service.name"], resource.attributes["service.name"]) where resource.attributes["service.name"] != nil
                 - set(attributes["service.version"], resource.attributes["service.version"]) where resource.attributes["service.version"] != nil
                 - set(attributes["service.instance.id"], resource.attributes["service.instance.id"]) where resource.attributes["service.instance.id"] != nil
-        # Keep only logs from the development namespace for Walrus indexing/publishing.
-        # If k8sattributes enrichment fails, the record is dropped rather than forwarded broadly.
-        filter/keep_development_namespace:
-          error_mode: ignore
-          logs:
-            log_record:
-              - 'resource.attributes["k8s.namespace.name"] != "production"'
         # Skip empty/whitespace-only logs
         filter/drop_empty_logs:
           logs:
@@ -229,5 +225,5 @@ collectors:
         pipelines:
           logs:
             receivers: [filelog]
-            processors: [memory_limiter, transform/seed_pod_resource, k8sattributes, transform/add_pod_metadata, filter/keep_development_namespace, filter/drop_empty_logs, batch]
+            processors: [memory_limiter, transform/seed_pod_resource, k8sattributes, transform/add_pod_metadata, filter/drop_empty_logs, batch]
             exporters: [otlphttp/logsblox]

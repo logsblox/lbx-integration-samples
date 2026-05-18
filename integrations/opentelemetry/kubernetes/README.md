@@ -32,3 +32,8 @@ Install the OpenTelemetry Collector with Helm:
      open-telemetry/opentelemetry-kube-stack \
      -f opentelemetry-kube-stack-values.yaml
    ```
+
+## Notes
+
+- The sample collector uses `filelog.start_at: beginning` so short-lived jobs and one-shot log generators are ingested even when they finish before the collector starts tailing their files.
+- On the first rollout, this can replay existing container log files already present on the node. For production changes, deploy during a controlled window and watch downstream ingest capacity.
