@@ -10,6 +10,16 @@ opentelemetry-operator:
 # Optional: Set cluster name for multi-cluster log identification (e.g. production-us-east).
 # EKS/GKE/AKS may auto-detect when left unset.
 # clusterName: "unknown_k8s_cluster"
+#
+# Namespace scope for log collection.
+# Edit these two lists together in one place:
+# - includeGlobs controls which pod log files are tailed
+# - dropConditions keeps the export pipeline restricted to the same namespaces
+logNamespaces:
+  includeGlobs: &log_namespace_globs
+    - /var/log/pods/default_*/*/*.log
+  dropConditions: &log_namespace_drop_conditions
+    - 'resource.attributes["k8s.namespace.name"] != "default"'
 collectors:
   daemon:
     env:
@@ -39,13 +49,8 @@ collectors:
         filelog:
           # Files matching these globs are read; everything else is implicitly excluded.
           # Path: /var/log/pods/<namespace>_<pod-name>_<uid>/<container-name>/<restart>.log
-          #
-          # Scope collection to the namespaces that actually matter for your product.
-          # Replace the examples below with your app namespaces and your short-lived
-          # job namespace (for example the namespace that runs plogger).
-          include:
-            - /var/log/pods/prod_*/*/*.log
-            - /var/log/pods/plogger_*/*/*.log
+          # Edit the logNamespaces block above to change namespace scope.
+          include: *log_namespace_globs
           exclude:
             - /var/log/pods/*opentelemetry-kube-stack*/*/*.log
           include_file_path: true
@@ -211,8 +216,7 @@ collectors:
         # scoped to the namespaces you explicitly care about.
         filter/allowed_namespaces:
           logs:
-            log_record:
-              - 'resource.attributes["k8s.namespace.name"] != "prod" and resource.attributes["k8s.namespace.name"] != "plogger"'
+            log_record: *log_namespace_drop_conditions
         # Skip empty/whitespace-only logs
         filter/drop_empty_logs:
           logs:
