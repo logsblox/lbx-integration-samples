@@ -39,8 +39,13 @@ collectors:
         filelog:
           # Files matching these globs are read; everything else is implicitly excluded.
           # Path: /var/log/pods/<namespace>_<pod-name>_<uid>/<container-name>/<restart>.log
+          #
+          # Scope collection to the namespaces that actually matter for your product.
+          # Replace the examples below with your app namespaces and your short-lived
+          # job namespace (for example the namespace that runs plogger).
           include:
-            - /var/log/pods/*/*/*.log
+            - /var/log/pods/prod_*/*/*.log
+            - /var/log/pods/plogger_*/*/*.log
           exclude:
             - /var/log/pods/*opentelemetry-kube-stack*/*/*.log
           include_file_path: true
@@ -202,6 +207,12 @@ collectors:
                 - set(attributes["service.name"], resource.attributes["service.name"]) where resource.attributes["service.name"] != nil
                 - set(attributes["service.version"], resource.attributes["service.version"]) where resource.attributes["service.version"] != nil
                 - set(attributes["service.instance.id"], resource.attributes["service.instance.id"]) where resource.attributes["service.instance.id"] != nil
+        # Defensive guard: if the file include globs are widened later, keep export
+        # scoped to the namespaces you explicitly care about.
+        filter/allowed_namespaces:
+          logs:
+            log_record:
+              - 'resource.attributes["k8s.namespace.name"] != "prod" and resource.attributes["k8s.namespace.name"] != "plogger"'
         # Skip empty/whitespace-only logs
         filter/drop_empty_logs:
           logs:
@@ -225,5 +236,5 @@ collectors:
         pipelines:
           logs:
             receivers: [filelog]
-            processors: [memory_limiter, transform/seed_pod_resource, k8sattributes, transform/add_pod_metadata, filter/drop_empty_logs, batch]
+            processors: [memory_limiter, transform/seed_pod_resource, k8sattributes, transform/add_pod_metadata, filter/allowed_namespaces, filter/drop_empty_logs, batch]
             exporters: [otlphttp/logsblox]

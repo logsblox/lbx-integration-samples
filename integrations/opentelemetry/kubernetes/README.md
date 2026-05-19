@@ -37,3 +37,5 @@ Install the OpenTelemetry Collector with Helm:
 
 - The sample collector uses `filelog.start_at: beginning` so short-lived jobs and one-shot log generators are ingested even when they finish before the collector starts tailing their files.
 - On the first rollout, this can replay existing container log files already present on the node. For production changes, deploy during a controlled window and watch downstream ingest capacity.
+- The sample is namespace-scoped by default to `prod` and `plogger` as concrete examples. Replace those globs and the namespace filter with the namespaces you actually want to pay to ingest.
+- Keep namespace scoping as close to `filelog.include` as possible. UI-side filtering is useful for search, but it does not reduce ingest, storage, or Walrus publish cost.
