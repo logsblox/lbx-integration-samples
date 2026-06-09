@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Resource::builder_empty()
                 .with_attributes([
                     KeyValue::new("service.name", "rust-service"),
-                    KeyValue::new("deployment.environment", "production"),
+                    KeyValue::new("environment.index", "production"),
                 ])
                 .build(),
         )

@@ -11,15 +11,14 @@ opentelemetry-operator:
 # EKS/GKE/AKS may auto-detect when left unset.
 # clusterName: "unknown_k8s_cluster"
 #
-# Namespace scope for log collection.
-# Edit these two lists together in one place:
-# - includeGlobs controls which pod log files are tailed
-# - dropConditions keeps the export pipeline restricted to the same namespaces
-logNamespaces:
+# Namespace scope for log collection (optional).
+# By default all namespaces are collected. To restrict, narrow includeGlobs and/or
+# add dropConditions entries (keep both lists aligned).
+namespaces:
   includeGlobs: &log_namespace_globs
-    - /var/log/pods/default_*/*/*.log
+    - /var/log/pods/*/*/*.log
   dropConditions: &log_namespace_drop_conditions
-    - 'resource.attributes["k8s.namespace.name"] != "default"'
+    # - 'resource.attributes["k8s.namespace.name"] != "NOT_THIS_NAMESPACE"'
 collectors:
   daemon:
     env:
@@ -49,7 +48,7 @@ collectors:
         filelog:
           # Files matching these globs are read; everything else is implicitly excluded.
           # Path: /var/log/pods/<namespace>_<pod-name>_<uid>/<container-name>/<restart>.log
-          # Edit the logNamespaces block above to change namespace scope.
+          # Default: all namespaces. Edit namespaces above to narrow scope.
           include: *log_namespace_globs
           exclude:
             - /var/log/pods/*opentelemetry-kube-stack*/*/*.log
@@ -71,7 +70,7 @@ collectors:
             # Parse JSON-formatted application logs
             - type: json_parser
               id: parse_json_body
-              if: 'body != nil and IsMatch(body, "^\\s*\\{")'
+              if: 'body != nil and body matches "^\\s*\\{"'
               parse_from: body
               on_error: send
             # Infer severity from body when level not already set (e.g. "INFO", "ERROR")
@@ -148,14 +147,14 @@ collectors:
               - service.instance.id
             # Extracts environment from pod labels for index filtering.
             labels:
-              - tag_name: environment
-                key: environment
-                from: pod
               - tag_name: env
                 key: env
                 from: pod
-              - tag_name: deployment_environment
-                key: deployment.environment
+              - tag_name: environment
+                key: environment
+                from: pod
+              - tag_name: environment.index
+                key: environment.index
                 from: pod
           pod_association:
             - sources:
@@ -212,11 +211,17 @@ collectors:
                 - set(attributes["service.name"], resource.attributes["service.name"]) where resource.attributes["service.name"] != nil
                 - set(attributes["service.version"], resource.attributes["service.version"]) where resource.attributes["service.version"] != nil
                 - set(attributes["service.instance.id"], resource.attributes["service.instance.id"]) where resource.attributes["service.instance.id"] != nil
-        # Defensive guard: if the file include globs are widened later, keep export
-        # scoped to the namespaces you explicitly care about.
+        # Add dropConditions in namespaces to restrict
         filter/allowed_namespaces:
           logs:
             log_record: *log_namespace_drop_conditions
+        # Only forward logs whose pod carries an index label (environment.index, env, or
+        # environment). Pods without any of these labels are dropped before export, so the
+        # pipeline ships only logs that can be filtered by index in Logsblox.
+        filter/require_index:
+          logs:
+            log_record:
+              - 'resource.attributes["environment.index"] == nil and resource.attributes["env"] == nil and resource.attributes["environment"] == nil'
         # Skip empty/whitespace-only logs
         filter/drop_empty_logs:
           logs:
@@ -240,5 +245,5 @@ collectors:
         pipelines:
           logs:
             receivers: [filelog]
-            processors: [memory_limiter, transform/seed_pod_resource, k8sattributes, transform/add_pod_metadata, filter/allowed_namespaces, filter/drop_empty_logs, batch]
+            processors: [memory_limiter, transform/seed_pod_resource, k8sattributes, transform/add_pod_metadata, filter/allowed_namespaces, filter/require_index, filter/drop_empty_logs, batch]
             exporters: [otlphttp/logsblox]

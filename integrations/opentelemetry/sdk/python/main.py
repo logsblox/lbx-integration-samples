@@ -10,7 +10,7 @@ from opentelemetry.sdk.resources import Resource
 provider = LoggerProvider(
     resource=Resource.create(
         {
-            "deployment.environment": "production",
+            "environment.index": "production",
             "service.name": "python-service",
         }
     )
@@ -21,7 +21,7 @@ exporter = OTLPLogExporter(
     endpoint=os.getenv("LOGSBLOX_ENDPOINT", ""),
     headers={"x-api-key": os.getenv("LOGSBLOX_API_KEY", "")},
     compression=Compression.Gzip,
-    timeout=30,
+    timeout=15,
 )
 provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
 

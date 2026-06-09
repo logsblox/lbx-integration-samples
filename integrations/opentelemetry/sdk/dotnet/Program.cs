@@ -17,7 +17,7 @@ using var loggerFactory = LoggerFactory.Create(builder =>
                 .AddService("dotnet-service")
                 .AddAttributes(new List<KeyValuePair<string, object>>
                 {
-                    new("deployment.environment", "production"),
+                    new("environment.index", "production"),
                 })
         );
 

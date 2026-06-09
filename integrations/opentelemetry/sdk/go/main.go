@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
+	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 func main() {
@@ -27,14 +27,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	res, _ := resource.Merge(resource.Default(),
-		resource.NewWithAttributes(semconv.SchemaURL,
-			semconv.DeploymentEnvironment("production"),
-			semconv.ServiceName("go-service"),
-		))
 	provider := sdklog.NewLoggerProvider(
 		sdklog.WithProcessor(sdklog.NewSimpleProcessor(exporter)),
-		sdklog.WithResource(res),
+		sdklog.WithResource(resource.NewSchemaless(
+			attribute.String("environment.index", "production"),
+			attribute.String("service.name", "go-service"),
+		)),
 	)
 	defer provider.Shutdown(ctx)
 

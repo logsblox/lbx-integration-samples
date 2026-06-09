@@ -12,7 +12,7 @@ async function main() {
 
   const provider = new LoggerProvider({
     resource: resourceFromAttributes({
-      "deployment.environment": "production",
+      "environment.index": "production",
       "service.name": "node-service",
     }),
     processors: [new SimpleLogRecordProcessor(exporter)],

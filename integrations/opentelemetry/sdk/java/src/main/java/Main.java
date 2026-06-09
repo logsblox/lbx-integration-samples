@@ -18,7 +18,7 @@ public class Main {
         .build();
 
     Resource resource = Resource.getDefault().toBuilder()
-        .put(AttributeKey.stringKey("deployment.environment"), "production")
+        .put(AttributeKey.stringKey("environment.index"), "production")
         .put(AttributeKey.stringKey("service.name"), "java-service")
         .build();
 
