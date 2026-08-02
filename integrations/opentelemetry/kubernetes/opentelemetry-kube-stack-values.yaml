@@ -103,15 +103,15 @@ collectors:
             http:
               endpoint: 0.0.0.0:4318
       processors:
-        # Prevents OOM under log spikes
         memory_limiter:
-          check_interval: 5s
+          check_interval: 1s
           limit_percentage: 80
           spike_limit_percentage: 25
-        # Batch logs to improve performance and reduce network overhead
         batch:
-          send_batch_size: 1000
-          timeout: 5s
+          send_batch_size: 8192
+          send_batch_max_size: 8192
+          timeout: 200ms
+          metadata_keys: []
         # Promote filelog path fields to resource attrs so k8sattributes can associate pods
         transform/seed_pod_resource:
           log_statements:
@@ -237,6 +237,15 @@ collectors:
           compression: gzip
           headers:
             x-api-key: ${LOGSBLOX_API_KEY}
+          timeout: 30s
+          retry_on_failure:
+            enabled: true
+            initial_interval: 1s
+            max_interval: 10s
+          sending_queue:
+            enabled: true
+            num_consumers: 4
+            queue_size: 1000
       extensions:
         health_check:
           endpoint: 0.0.0.0:13133
