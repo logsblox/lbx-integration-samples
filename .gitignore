@@ -1,0 +1,9 @@
+# Local env files (never commit)
+.env
+.env.local
+.env.*.local
+
+# Allow env templates (placeholders only)
+!.env.example
+!.env.sample
+!.env.template
