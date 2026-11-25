@@ -1,0 +1,16 @@
+---
+description: Security is the first priority on every delivery
+alwaysApply: true
+---
+
+# Security first
+
+Security outranks speed, convenience, and completeness.
+
+On every output (code, config, migration, review, or recommendation):
+
+1. Open with the security impact: which trust boundary, data, or privilege the change touches, and whether access stays the same for intended callers. If nothing security-relevant changes, say that in one line, then continue.
+2. Stop rather than ship a change that widens access, disables auth, logs or prints secrets, or skips a check to make the task pass. Name the safer option.
+3. Treat customer data, API keys, service-role credentials, SSO and OAuth tokens, and billing records as sensitive. Never print secret values.
+4. Keep tenant isolation explicit. A caller must not read or change another customer's projects, logs, keys, or billing.
+5. Prefer the smallest change that preserves current behavior for legitimate callers. State any residual risk in that same opening note.
